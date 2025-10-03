@@ -1,0 +1,103 @@
+{
+  "manifest_version": 3,
+  "name": "UT Registration Plus Concept",
+  "version": "1.0.0",
+  "description": "Concept code for UT Registration Plus features.",
+  
+  "permissions": [
+    "storage"
+    // The actual extension uses many more permissions like scripting and declarativeNetRequest
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png"
+    }
+  },
+  
+  "content_scripts": [
+    {
+      // This pattern targets the UT Course Catalog page
+      "matches": ["https://utdirect.utexas.edu/registrar/course_schedule*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
+
+// content.js
+// This script runs on the UT Course Schedule page.
+
+/**
+ * Searches the DOM for professor names and injects a link to Rate My Professor (RMP).
+ */
+function injectRateMyProfessorLinks() {
+    console.log("UT Registration Plus Concept: Running content script.");
+
+    // The actual DOM structure of the UT page is complex and may change.
+    // This is a simplified selector for demonstration purposes.
+    // We look for elements that might contain professor names.
+    const professorElements = document.querySelectorAll('td.text_bold'); 
+
+    professorElements.forEach(element => {
+        const text = element.textContent.trim();
+        
+        // Basic check to see if the element content looks like a name
+        if (text && text.includes(',')) {
+            // Split by comma (e.g., "Doe, John" -> "John Doe")
+            const parts = text.split(',').map(p => p.trim());
+            if (parts.length === 2) {
+                const professorName = `${parts[1]} ${parts[0]}`;
+                
+                // Construct the RMP search link (using UT Austin's code 1113)
+                const rmpUrl = `https://www.ratemyprofessors.com/search/professors/1113?q=${encodeURIComponent(professorName)}`;
+
+                // Create and inject the link element
+                const rmpLink = document.createElement('a');
+                rmpLink.href = rmpUrl;
+                rmpLink.target = '_blank';
+                rmpLink.style.marginLeft = '8px';
+                rmpLink.style.fontSize = '0.9em';
+                rmpLink.style.color = '#FF8C00'; // Orange color for visibility
+                rmpLink.textContent = '[RMP]';
+                
+                // Prevent duplicate injection
+                if (!element.querySelector('.utrp-rmp-link')) {
+                    rmpLink.classList.add('utrp-rmp-link');
+                    element.appendChild(rmpLink);
+                }
+
+                console.log(`Injected RMP link for: ${professorName}`);
+            }
+        }
+    });
+}
+
+// Wait for a short time after the page loads to ensure all elements are present
+window.onload = function() {
+    setTimeout(injectRateMyProfessorLinks, 1000);
+};
+
+// Also listen for changes on the page (in case content loads dynamically)
+// The actual extension uses a more sophisticated MutationObserver.
+// document.addEventListener('DOMNodeInserted', injectRateMyProfessorLinks);
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UTRP Saved Courses</title>
+    <style>
+        body { width: 300px; padding: 10px; font-family: sans-serif; }
+        h3 { color: #bf5700; } /* UT Orange */
+    </style>
+</head>
+<body>
+    <div id="root">
+        <h3>UT Registration Plus</h3>
+        <p>Loading Saved Courses...</p>
+    </div>
+    <script src="popup.js"></script> 
+</body>
+</html>
